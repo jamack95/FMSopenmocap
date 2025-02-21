@@ -136,7 +136,10 @@
     <h3>Standing Posture</h3>
     <div class="measurements">
       <div id="fmsBarDrift">Bar Drift: --</div>
-      <div id="fmsForwardHead">Forward Head: --</div>
+      <!-- Added Forward Head Posture Display -->
+      <div id="fmsForwardHead">Forward Head Posture: --°</div>
+      <!-- Added Trunk Alignment Display -->
+      <div id="fmsTrunkAlignment">Trunk Alignment: --°</div>
     </div>
     <!-- Lower Body FMS Tests -->
     <h3>Lower Body FMS Tests</h3>
@@ -584,7 +587,6 @@
         drawLandmarks(results.poseLandmarks);
         
         // --- Upper Body Calculations ---
-        // Left: Shoulder (11), Elbow (13), Wrist (15)
         const leftShoulder = results.poseLandmarks[11];
         const leftElbow = results.poseLandmarks[13];
         const leftWrist = results.poseLandmarks[15];
@@ -600,7 +602,6 @@
           document.getElementById('upperLeftAbd').innerText = 'Left Abduction: ' + leftAbdAngle.toFixed(1) + '°';
           document.getElementById('upperLeftRot').innerText = 'Left Rotation: ' + leftRotAngle.toFixed(1) + '°';
         }
-        // Right: Shoulder (12), Elbow (14), Wrist (16)
         const rightShoulder = results.poseLandmarks[12];
         const rightElbow = results.poseLandmarks[14];
         const rightWrist = results.poseLandmarks[16];
@@ -616,7 +617,6 @@
           document.getElementById('upperRightAbd').innerText = 'Right Abduction: ' + rightAbdAngle.toFixed(1) + '°';
           document.getElementById('upperRightRot').innerText = 'Right Rotation: ' + rightRotAngle.toFixed(1) + '°';
         }
-        // Log upper body data if recording
         if (isRecordingUpper && leftFlexAngle !== null && leftAbdAngle !== null && leftRotAngle !== null &&
             rightFlexAngle !== null && rightAbdAngle !== null && rightRotAngle !== null) {
           const currentTime = ((Date.now() - startTimeUpper) / 1000).toFixed(2);
@@ -640,7 +640,6 @@
         }
         
         // --- Lower Body Calculations ---
-        // Left Knee: Hip (23), Knee (25), Ankle (27)
         const leftHip = results.poseLandmarks[23];
         const leftKnee = results.poseLandmarks[25];
         const leftAnkle = results.poseLandmarks[27];
@@ -649,14 +648,12 @@
           leftKneeAngle = calculateAngle(leftHip, leftKnee, leftAnkle);
           document.getElementById('lowerLeftKnee').innerText = 'Left Knee: ' + leftKneeAngle.toFixed(1) + '°';
         }
-        // Left Ankle: Knee (25), Ankle (27), Foot Index (31)
         const leftFootIndex = results.poseLandmarks[31];
         let leftAnkleAngle = null;
         if (leftKnee && leftAnkle && leftFootIndex) {
           leftAnkleAngle = calculateAngle(leftKnee, leftAnkle, leftFootIndex);
           document.getElementById('lowerLeftAnkle').innerText = 'Left Ankle: ' + leftAnkleAngle.toFixed(1) + '°';
         }
-        // Right Knee: Hip (24), Knee (26), Ankle (28)
         const rightHip = results.poseLandmarks[24];
         const rightKnee = results.poseLandmarks[26];
         const rightAnkle = results.poseLandmarks[28];
@@ -665,14 +662,12 @@
           rightKneeAngle = calculateAngle(rightHip, rightKnee, rightAnkle);
           document.getElementById('lowerRightKnee').innerText = 'Right Knee: ' + rightKneeAngle.toFixed(1) + '°';
         }
-        // Right Ankle: Knee (26), Ankle (28), Foot Index (32)
         const rightFootIndex = results.poseLandmarks[32];
         let rightAnkleAngle = null;
         if (rightKnee && rightAnkle && rightFootIndex) {
           rightAnkleAngle = calculateAngle(rightKnee, rightAnkle, rightFootIndex);
           document.getElementById('lowerRightAnkle').innerText = 'Right Ankle: ' + rightAnkleAngle.toFixed(1) + '°';
         }
-        // Log lower body data if recording
         if (isRecordingLower && leftKneeAngle !== null && leftAnkleAngle !== null &&
             rightKneeAngle !== null && rightAnkleAngle !== null) {
           const currentTime = ((Date.now() - startTimeLower) / 1000).toFixed(2);
@@ -692,20 +687,16 @@
         }
         
         // --- FMS Assessment Calculations ---
-        // Overhead Squat Metrics (placeholders – refine as needed)
-        // fmsAnkleEversion: Using left ankle angle as a proxy
         let fmsAnkleEversion = leftAnkleAngle;
         if (fmsAnkleEversion !== null) {
           document.getElementById('fmsAnkleEversion').innerText = 'Ankle Eversion: ' + fmsAnkleEversion.toFixed(1) + '°';
         }
-        // fmsKneeAdduction: Compute using a vertical reference at the left hip
         let fmsKneeAdduction = null;
         if (leftHip && leftKnee) {
           const verticalRef = { x: leftHip.x, y: leftHip.y + 0.1 };
           fmsKneeAdduction = calculateAngle(verticalRef, leftHip, leftKnee);
           document.getElementById('fmsKneeAdduction').innerText = 'Knee Adduction: ' + fmsKneeAdduction.toFixed(1) + '°';
         }
-        // fmsPelvicTilt: Angle between the hips and horizontal
         let fmsPelvicTilt = null;
         if (leftHip && rightHip) {
           const dx = rightHip.x - leftHip.x;
@@ -713,17 +704,28 @@
           fmsPelvicTilt = Math.atan2(dy, dx) * (180/Math.PI);
           document.getElementById('fmsPelvicTilt').innerText = 'Pelvic Tilt: ' + fmsPelvicTilt.toFixed(1) + '°';
         }
-        // Lower Body FMS Tests
-        // In-line Lunge Angle: Using left knee angle as a proxy
         let fmsInlineLunge = leftKneeAngle;
         if (fmsInlineLunge !== null) {
           document.getElementById('fmsInlineLunge').innerText = 'In-line Lunge Angle: ' + fmsInlineLunge.toFixed(1) + '°';
         }
-        // ASLR Score: Placeholder (could be computed based on hip flexion)
         let fmsASLR = 0; 
         document.getElementById('fmsASLR').innerText = 'ASLR Score: ' + fmsASLR;
         
-        // Log FMS data if recording
+        // --- Additional Physical Therapy Metrics ---
+        // Forward Head Posture (using left ear (landmark 7) and left shoulder (landmark 11))
+        const leftEar = results.poseLandmarks[7];
+        if (leftEar && leftShoulder) {
+          const forwardHeadAngle = Math.atan2(Math.abs(leftEar.x - leftShoulder.x), leftShoulder.y - leftEar.y) * (180 / Math.PI);
+          document.getElementById('fmsForwardHead').innerText = 'Forward Head Posture: ' + forwardHeadAngle.toFixed(1) + '°';
+        }
+        // Trunk Alignment: angle between midpoint of shoulders and hips relative to vertical
+        if (leftShoulder && rightShoulder && leftHip && rightHip) {
+          const midShoulder = { x: (leftShoulder.x + rightShoulder.x) / 2, y: (leftShoulder.y + rightShoulder.y) / 2 };
+          const midHip = { x: (leftHip.x + rightHip.x) / 2, y: (leftHip.y + rightHip.y) / 2 };
+          const trunkAngle = Math.atan2(midShoulder.x - midHip.x, midHip.y - midShoulder.y) * (180 / Math.PI);
+          document.getElementById('fmsTrunkAlignment').innerText = 'Trunk Alignment: ' + trunkAngle.toFixed(1) + '°';
+        }
+        
         if (isRecordingFMS && fmsAnkleEversion !== null && fmsKneeAdduction !== null && fmsPelvicTilt !== null) {
           const currentTime = ((Date.now() - startTimeFMS) / 1000).toFixed(2);
           timeLabelsFMS.push(currentTime);
