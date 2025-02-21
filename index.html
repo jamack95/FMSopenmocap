@@ -136,10 +136,11 @@
     <h3>Standing Posture</h3>
     <div class="measurements">
       <div id="fmsBarDrift">Bar Drift: --</div>
-      <!-- Added Forward Head Posture Display -->
       <div id="fmsForwardHead">Forward Head Posture: --°</div>
-      <!-- Added Trunk Alignment Display -->
       <div id="fmsTrunkAlignment">Trunk Alignment: --°</div>
+      <!-- New thoracic measurements -->
+      <div id="fmsThoracicFlexion">Thoracic Flexion: --°</div>
+      <div id="fmsThoracicExtension">Thoracic Extension: --°</div>
     </div>
     <!-- Lower Body FMS Tests -->
     <h3>Lower Body FMS Tests</h3>
@@ -284,6 +285,9 @@
     let fmsASLRData = [];
     let startTimeFMS = Date.now();
     let isRecordingFMS = false;
+    // New variables for side-view thoracic measurements
+    let maxThoracicAngle = -Infinity;
+    let minThoracicAngle = Infinity;
     
     const ctxChartFMS = document.getElementById('chartCanvasFMS').getContext('2d');
     const chartFMS = new Chart(ctxChartFMS, {
@@ -315,7 +319,6 @@
     const startRecordingUpperBtn = document.getElementById('startRecordingUpper');
     const stopRecordingUpperBtn = document.getElementById('stopRecordingUpper');
     startRecordingUpperBtn.addEventListener('click', () => {
-      // Clear previous upper body data
       timeLabelsUpper = [];
       upperLeftFlexData = [];
       upperLeftAbdData = [];
@@ -333,7 +336,6 @@
       chartUpper.update();
       isRecordingUpper = true;
       startTimeUpper = Date.now();
-      // Start recording from the output canvas (30 FPS)
       const stream = canvasElement.captureStream(30);
       mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
       recordedChunks = [];
@@ -399,7 +401,6 @@
     const startRecordingLowerBtn = document.getElementById('startRecordingLower');
     const stopRecordingLowerBtn = document.getElementById('stopRecordingLower');
     startRecordingLowerBtn.addEventListener('click', () => {
-      // Clear previous lower body data
       timeLabelsLower = [];
       lowerLeftKneeData = [];
       lowerLeftAnkleData = [];
@@ -413,7 +414,6 @@
       chartLower.update();
       isRecordingLower = true;
       startTimeLower = Date.now();
-      // Start recording from the canvas
       const stream = canvasElement.captureStream(30);
       mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
       recordedChunks = [];
@@ -477,7 +477,6 @@
     const startRecordingFMSBtn = document.getElementById('startRecordingFMS');
     const stopRecordingFMSBtn = document.getElementById('stopRecordingFMS');
     startRecordingFMSBtn.addEventListener('click', () => {
-      // Clear previous FMS data
       timeLabelsFMS = [];
       fmsAnkleEversionData = [];
       fmsKneeAdductionData = [];
@@ -493,6 +492,9 @@
       chartFMS.update();
       isRecordingFMS = true;
       startTimeFMS = Date.now();
+      // Reset thoracic metrics for side-view measurements
+      maxThoracicAngle = -Infinity;
+      minThoracicAngle = Infinity;
       const stream = canvasElement.captureStream(30);
       mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
       recordedChunks = [];
@@ -712,18 +714,29 @@
         document.getElementById('fmsASLR').innerText = 'ASLR Score: ' + fmsASLR;
         
         // --- Additional Physical Therapy Metrics ---
-        // Forward Head Posture (using left ear (landmark 7) and left shoulder (landmark 11))
+        // Forward Head Posture: Using left ear (landmark 7) and left shoulder (landmark 11)
         const leftEar = results.poseLandmarks[7];
         if (leftEar && leftShoulder) {
           const forwardHeadAngle = Math.atan2(Math.abs(leftEar.x - leftShoulder.x), leftShoulder.y - leftEar.y) * (180 / Math.PI);
           document.getElementById('fmsForwardHead').innerText = 'Forward Head Posture: ' + forwardHeadAngle.toFixed(1) + '°';
         }
-        // Trunk Alignment: angle between midpoint of shoulders and hips relative to vertical
+        // Trunk Alignment: Angle between the midpoint of shoulders and hips relative to vertical
         if (leftShoulder && rightShoulder && leftHip && rightHip) {
           const midShoulder = { x: (leftShoulder.x + rightShoulder.x) / 2, y: (leftShoulder.y + rightShoulder.y) / 2 };
           const midHip = { x: (leftHip.x + rightHip.x) / 2, y: (leftHip.y + rightHip.y) / 2 };
           const trunkAngle = Math.atan2(midShoulder.x - midHip.x, midHip.y - midShoulder.y) * (180 / Math.PI);
           document.getElementById('fmsTrunkAlignment').innerText = 'Trunk Alignment: ' + trunkAngle.toFixed(1) + '°';
+          
+          // --- Side-View Thoracic Measurements ---
+          // Update max (flexion) and min (extension) angles during the recording
+          if (trunkAngle > maxThoracicAngle) {
+            maxThoracicAngle = trunkAngle;
+          }
+          if (trunkAngle < minThoracicAngle) {
+            minThoracicAngle = trunkAngle;
+          }
+          document.getElementById('fmsThoracicFlexion').innerText = 'Thoracic Flexion: ' + maxThoracicAngle.toFixed(1) + '°';
+          document.getElementById('fmsThoracicExtension').innerText = 'Thoracic Extension: ' + minThoracicAngle.toFixed(1) + '°';
         }
         
         if (isRecordingFMS && fmsAnkleEversion !== null && fmsKneeAdduction !== null && fmsPelvicTilt !== null) {
