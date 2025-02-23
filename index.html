@@ -211,6 +211,51 @@
     });
     camera.start();
     
+    // --- Define Skeleton Connections (landmark index pairs) ---
+    const POSE_CONNECTIONS = [
+      [11, 12],       // Shoulders
+      [11, 13], [13, 15],  // Left Arm
+      [12, 14], [14, 16],  // Right Arm
+      [11, 23],       // Left Shoulder to Left Hip
+      [12, 24],       // Right Shoulder to Right Hip
+      [23, 24],       // Hips
+      [23, 25], [25, 27],  // Left Leg
+      [24, 26], [26, 28],  // Right Leg
+      [27, 31],       // Left Ankle to Foot
+      [28, 32]        // Right Ankle to Foot
+    ];
+    
+    // --- Utility Function: Draw Skeleton (lines connecting landmarks) ---
+    function drawSkeleton(landmarks) {
+      if (!landmarks) return;
+      canvasCtx.lineWidth = 2;
+      canvasCtx.strokeStyle = 'white';
+      POSE_CONNECTIONS.forEach(pair => {
+        const [i, j] = pair;
+        const lm1 = landmarks[i];
+        const lm2 = landmarks[j];
+        if (lm1 && lm2) {
+          canvasCtx.beginPath();
+          canvasCtx.moveTo(lm1.x * canvasElement.width, lm1.y * canvasElement.height);
+          canvasCtx.lineTo(lm2.x * canvasElement.width, lm2.y * canvasElement.height);
+          canvasCtx.stroke();
+        }
+      });
+    }
+    
+    // --- Utility Function: Draw small red dots for landmarks (skip face landmarks 0-10) ---
+    function drawLandmarks(landmarks) {
+      landmarks.forEach((landmark, index) => {
+        if (index < 11) return;
+        const x = landmark.x * canvasElement.width;
+        const y = landmark.y * canvasElement.height;
+        canvasCtx.beginPath();
+        canvasCtx.arc(x, y, 3, 0, 2 * Math.PI);
+        canvasCtx.fillStyle = 'red';
+        canvasCtx.fill();
+      });
+    }
+    
     // --- Data Logging & Chart Setup for Upper Body ---
     let timeLabelsUpper = [];
     let upperLeftFlexData = [];
@@ -555,30 +600,6 @@
       a.click();
     });
     
-    // --- Utility Function: Calculate angle between three points (each with x and y) ---
-    function calculateAngle(A, B, C) {
-      const AB = { x: A.x - B.x, y: A.y - B.y };
-      const CB = { x: C.x - B.x, y: C.y - B.y };
-      const dot = AB.x * CB.x + AB.y * CB.y;
-      const magAB = Math.sqrt(AB.x * AB.x + AB.y * AB.y);
-      const magCB = Math.sqrt(CB.x * CB.x + CB.y * CB.y);
-      const angleRad = Math.acos(dot / (magAB * magCB));
-      return angleRad * (180 / Math.PI);
-    }
-    
-    // --- Utility Function: Draw small red dots for landmarks (skip face landmarks 0-10) ---
-    function drawLandmarks(landmarks) {
-      landmarks.forEach((landmark, index) => {
-        if (index < 11) return;
-        const x = landmark.x * canvasElement.width;
-        const y = landmark.y * canvasElement.height;
-        canvasCtx.beginPath();
-        canvasCtx.arc(x, y, 3, 0, 2 * Math.PI);
-        canvasCtx.fillStyle = 'red';
-        canvasCtx.fill();
-      });
-    }
-    
     // --- onResults Callback from MediaPipe Pose ---
     pose.onResults((results) => {
       canvasCtx.save();
@@ -586,7 +607,10 @@
       canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
       
       if (results.poseLandmarks) {
+        // Draw landmarks as red dots...
         drawLandmarks(results.poseLandmarks);
+        // Draw the skeleton overlay (white lines)
+        drawSkeleton(results.poseLandmarks);
         
         // --- Upper Body Calculations ---
         const leftShoulder = results.poseLandmarks[11];
@@ -720,7 +744,7 @@
           const forwardHeadAngle = Math.atan2(Math.abs(leftEar.x - leftShoulder.x), leftShoulder.y - leftEar.y) * (180 / Math.PI);
           document.getElementById('fmsForwardHead').innerText = 'Forward Head Posture: ' + forwardHeadAngle.toFixed(1) + '°';
         }
-        // Trunk Alignment: Angle between the midpoint of shoulders and hips relative to vertical
+        // Trunk Alignment: Angle between midpoint of shoulders and hips relative to vertical
         if (leftShoulder && rightShoulder && leftHip && rightHip) {
           const midShoulder = { x: (leftShoulder.x + rightShoulder.x) / 2, y: (leftShoulder.y + rightShoulder.y) / 2 };
           const midHip = { x: (leftHip.x + rightHip.x) / 2, y: (leftHip.y + rightHip.y) / 2 };
@@ -728,7 +752,7 @@
           document.getElementById('fmsTrunkAlignment').innerText = 'Trunk Alignment: ' + trunkAngle.toFixed(1) + '°';
           
           // --- Side-View Thoracic Measurements ---
-          // Update max (flexion) and min (extension) angles during the recording
+          // Update max (flexion) and min (extension) angles during recording
           if (trunkAngle > maxThoracicAngle) {
             maxThoracicAngle = trunkAngle;
           }
@@ -760,6 +784,17 @@
       }
       canvasCtx.restore();
     });
+    
+    // --- Utility Function: Calculate angle between three points (each with x and y) ---
+    function calculateAngle(A, B, C) {
+      const AB = { x: A.x - B.x, y: A.y - B.y };
+      const CB = { x: C.x - B.x, y: C.y - B.y };
+      const dot = AB.x * CB.x + AB.y * CB.y;
+      const magAB = Math.sqrt(AB.x * AB.x + AB.y * AB.y);
+      const magCB = Math.sqrt(CB.x * CB.x + CB.y * CB.y);
+      const angleRad = Math.acos(dot / (magAB * magCB));
+      return angleRad * (180 / Math.PI);
+    }
   </script>
 </body>
 </html>
